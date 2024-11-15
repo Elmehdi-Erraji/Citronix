@@ -28,7 +28,6 @@ public class Farm {
     @Column(nullable = false)
     private java.time.LocalDate creationDate;
 
-    // Helper Method
     public boolean isValidArea(double fieldAreaSum) {
         return fieldAreaSum < this.area;
     }
