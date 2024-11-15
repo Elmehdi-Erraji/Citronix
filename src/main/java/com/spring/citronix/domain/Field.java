@@ -5,31 +5,24 @@ import lombok.*;
 
 import java.util.UUID;
 
-
 @Entity
 @Setter
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Farm {
+public class Field {
     @Id
     @GeneratedValue
     private UUID id;
 
     @Column(nullable = false)
-    private String name;
-
-    @Column(nullable = false)
-    private String location;
-
-    @Column(nullable = false)
     private double area;
 
-    @Column(nullable = false)
-    private java.time.LocalDate creationDate;
+    @ManyToOne(optional = false)
+    private Farm farm;
 
     // Helper Method
-    public boolean isValidArea(double fieldAreaSum) {
-        return fieldAreaSum < this.area;
+    public boolean isTreeDensityValid(int numberOfTrees) {
+        return numberOfTrees <= area * 100; // 100 trees per hectare
     }
 }

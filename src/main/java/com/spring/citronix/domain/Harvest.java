@@ -1,5 +1,6 @@
 package com.spring.citronix.domain;
 
+import com.spring.citronix.domain.enums.Season;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -11,25 +12,18 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Farm {
+public class Harvest {
     @Id
     @GeneratedValue
     private UUID id;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String name;
+    private Season season;
 
     @Column(nullable = false)
-    private String location;
+    private java.time.LocalDate harvestDate;
 
     @Column(nullable = false)
-    private double area;
-
-    @Column(nullable = false)
-    private java.time.LocalDate creationDate;
-
-    // Helper Method
-    public boolean isValidArea(double fieldAreaSum) {
-        return fieldAreaSum < this.area;
-    }
+    private double totalQuantity;
 }

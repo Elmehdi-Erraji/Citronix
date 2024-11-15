@@ -7,29 +7,32 @@ import java.util.UUID;
 
 
 @Entity
-@Setter
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Farm {
+public class Sale {
     @Id
     @GeneratedValue
     private UUID id;
 
     @Column(nullable = false)
-    private String name;
+    private java.time.LocalDate date;
 
     @Column(nullable = false)
-    private String location;
+    private double unitPrice;
 
     @Column(nullable = false)
-    private double area;
+    private String client;
 
     @Column(nullable = false)
-    private java.time.LocalDate creationDate;
+    private double revenue;
+
+    @ManyToOne(optional = false)
+    private Harvest harvest;
 
     // Helper Method
-    public boolean isValidArea(double fieldAreaSum) {
-        return fieldAreaSum < this.area;
+    public double calculateRevenue(double quantity) {
+        return quantity * unitPrice;
     }
 }
