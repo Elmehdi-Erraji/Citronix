@@ -3,7 +3,11 @@ package com.spring.citronix.web.rest;
 
 import com.spring.citronix.domain.Farm;
 import com.spring.citronix.service.FarmService;
+import com.spring.citronix.web.mapper.request.FarmMapper;
+import com.spring.citronix.web.vm.request.farm.FarmCreateVM;
 import com.spring.citronix.web.vm.request.farm.FarmSearchVM;
+import com.spring.citronix.web.vm.request.farm.FarmUpdateVM;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,14 +21,18 @@ import java.util.UUID;
 public class FarmController {
 
     private final FarmService farmService;
+    private final FarmMapper farmMapper;
 
-    public FarmController(FarmService farmService) {
+
+    public FarmController(FarmService farmService, FarmMapper farmMapper) {
         this.farmService = farmService;
+        this.farmMapper = farmMapper;
     }
 
 
     @PostMapping("/create")
-    public Farm createFarm(@RequestBody Farm farm) {
+    public Farm createFarm(@RequestBody @Valid FarmCreateVM farmVM) {
+        Farm farm = farmMapper.toEntity(farmVM);
         return farmService.save(farm);
     }
 
@@ -50,14 +58,19 @@ public class FarmController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<Farm> updateFarm(@PathVariable UUID id, @RequestBody Farm farm) {
-        Optional<Farm> farm1 = farmService.findById(id);
-        if(farmService.findById(id) != null) {
-            farm.setId(id);
-            farmService.save(farm);
+    public ResponseEntity<Farm> updateFarm(@PathVariable UUID id, @RequestBody FarmUpdateVM farmUpdateVM) {
+        Optional<Farm> existingFarmOpt = farmService.findById(id);
+
+        if (!existingFarmOpt.isPresent()) {
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(farm);
+        Farm existingFarm = existingFarmOpt.get();
+        Farm updatedFarm = farmMapper.toEntity(farmUpdateVM);
+        updatedFarm.setId(id);
+        Farm savedFarm = farmService.save(updatedFarm);
+        return ResponseEntity.ok(savedFarm);
     }
+
 
     @PostMapping("/search")
     public List<Farm> searchFarm(@RequestBody FarmSearchVM farmSearch) {
