@@ -28,10 +28,12 @@ public class Sale {
     @Column(nullable = false)
     private double revenue;
 
+    @Column(nullable = false)
+    private double quantity;
+
     @ManyToOne(optional = false)
     private Harvest harvest;
 
-    // Helper Method
     public double calculateRevenue(double quantity) {
         return quantity * unitPrice;
     }

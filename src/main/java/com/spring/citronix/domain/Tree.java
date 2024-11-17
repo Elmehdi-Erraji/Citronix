@@ -23,7 +23,7 @@ public class Tree {
     @ManyToOne(optional = false)
     private Field field;
 
-    // Helper Methods
+
     public int calculateAge() {
         return Period.between(plantingDate, LocalDate.now()).getYears();
     }
@@ -33,6 +33,6 @@ public class Tree {
         if (age < 3) return 2.5;
         else if (age <= 10) return 12.0;
         else if (age <= 20) return 20.0;
-        else return 0.0; // Non-productive beyond 20 years
+        else return 0.0;
     }
 }

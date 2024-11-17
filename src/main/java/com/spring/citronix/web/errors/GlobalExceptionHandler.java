@@ -1,6 +1,7 @@
 package com.spring.citronix.web.errors;
 
 import com.spring.citronix.web.errors.field.ResourceNotFoundException;
+import com.spring.citronix.web.errors.tree.TreeNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -36,9 +37,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleFileNotFoundException(FileNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
-    
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<String> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(TreeNotFoundException.class)
+    public ResponseEntity<String> handleTreeNotFoundException(TreeNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
