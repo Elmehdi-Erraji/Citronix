@@ -9,11 +9,9 @@ import java.util.UUID;
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class Sale {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
     @Column(nullable = false)
@@ -31,7 +29,8 @@ public class Sale {
     @Column(nullable = false)
     private double quantity;
 
-    @ManyToOne(optional = false)
+    @ManyToOne
+    @JoinColumn(name = "harvest_id", nullable = false)
     private Harvest harvest;
 
     public double calculateRevenue(double quantity) {
