@@ -3,6 +3,7 @@ package com.spring.citronix.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -21,8 +22,10 @@ public class Field {
     @ManyToOne(optional = false)
     private Farm farm;
 
-    // Helper Method
+    @OneToMany(mappedBy = "field")
+    private List<Tree> trees;
+
     public boolean isTreeDensityValid(int numberOfTrees) {
-        return numberOfTrees <= area * 100; // 100 trees per hectare
+        return numberOfTrees <= area * 100;
     }
 }

@@ -13,7 +13,6 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Farm {
-
     @Id
     @GeneratedValue
     private UUID id;

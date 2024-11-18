@@ -29,7 +29,6 @@ public class FarmController {
         this.farmMapper = farmMapper;
     }
 
-
     @PostMapping("/create")
     public Farm createFarm(@RequestBody @Valid FarmCreateVM farmVM) {
         Farm farm = farmMapper.toEntity(farmVM);

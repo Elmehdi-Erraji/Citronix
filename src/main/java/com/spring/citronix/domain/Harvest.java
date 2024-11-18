@@ -4,6 +4,8 @@ import com.spring.citronix.domain.enums.Season;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -22,8 +24,18 @@ public class Harvest {
     private Season season;
 
     @Column(nullable = false)
-    private java.time.LocalDate harvestDate;
+    private LocalDate harvestDate;
 
     @Column(nullable = false)
     private double totalQuantity;
+
+
+    @ManyToOne
+    private Farm farm;
+
+    @OneToMany(mappedBy = "harvest")
+    private List<HarvestDetail> harvestDetails;
+
+    @OneToMany(mappedBy = "harvest")
+    private List<Sale> sales;
 }
