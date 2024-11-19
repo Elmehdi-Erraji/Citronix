@@ -6,6 +6,7 @@ import com.spring.citronix.repository.specifications.FarmSpecification;
 import com.spring.citronix.service.FarmService;
 import com.spring.citronix.web.errors.farm.FarmNotFoundException;
 import com.spring.citronix.web.errors.farm.InvalidFarmException;
+import com.spring.citronix.web.vm.request.farm.FarmDTO;
 import jakarta.validation.Valid;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Service  // Add this annotation to mark this class as a Spring service bean
+@Service
 public class FarmServiceImp implements FarmService {
 
     private final FarmRepository farmRepository;
@@ -29,6 +30,13 @@ public class FarmServiceImp implements FarmService {
         validateFarm(farm);
         return farmRepository.save(farm);
     }
+
+    @Override
+    public Farm saveFromDTO(Farm farm) {
+        return null;
+    }
+
+
 
     @Override
     public Optional<Farm> findById(UUID id) {
@@ -47,6 +55,11 @@ public class FarmServiceImp implements FarmService {
     @Override
     public void delete(Farm farm) {
         farmRepository.delete(farm);
+    }
+
+    @Override
+    public List<Farm> getFarmsWithAreaLessThan4000() {
+        return List.of();
     }
 
     @Override
