@@ -2,9 +2,13 @@ package com.spring.citronix.web.rest;
 
 
 import com.spring.citronix.domain.Farm;
+import com.spring.citronix.domain.Field;
 import com.spring.citronix.service.FarmService;
+import com.spring.citronix.service.imp.FarmServiceWithFields;
+import com.spring.citronix.service.imp.FarmServiceWithNoFields;
 import com.spring.citronix.web.mapper.request.FarmMapper;
 import com.spring.citronix.web.vm.request.farm.FarmCreateVM;
+import com.spring.citronix.web.vm.request.farm.FarmDTO;
 import com.spring.citronix.web.vm.request.farm.FarmSearchVM;
 import com.spring.citronix.web.vm.request.farm.FarmUpdateVM;
 import jakarta.validation.Valid;
@@ -15,6 +19,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/farm")
@@ -24,16 +29,33 @@ public class FarmController {
     private final FarmMapper farmMapper;
 
 
-    public FarmController(FarmService farmService, FarmMapper farmMapper) {
+    public FarmController(FarmServiceWithFields farmService, FarmMapper farmMapper) {
         this.farmService = farmService;
         this.farmMapper = farmMapper;
     }
 
     @PostMapping("/create")
-    public Farm createFarm(@RequestBody @Valid FarmCreateVM farmVM) {
-        Farm farm = farmMapper.toEntity(farmVM);
-        return farmService.save(farm);
+    public Farm createFarm(@RequestBody @Valid FarmDTO farmDTO) {
+        Farm farm = new Farm();
+        farm.setName(farmDTO.getName());
+        farm.setLocation(farmDTO.getLocation());
+        farm.setArea(farmDTO.getArea());
+        farm.setCreationDate(farmDTO.getCreationDate());
+
+
+        if (farmDTO.getFields() != null) {
+            List<Field> fields = farmDTO.getFields().stream().map(listField -> {
+                Field field = new Field();
+                field.setArea(listField.getArea());
+                return field;
+            }).collect(Collectors.toList());
+
+            farm.setFields(fields);
+        }
+
+        return farmService.saveFromDTO(farm);
     }
+
 
     @GetMapping("/findById/{id}")
     public Optional<Farm> findById(@PathVariable UUID id) {
@@ -75,6 +97,18 @@ public class FarmController {
     public List<Farm> searchFarm(@RequestBody FarmSearchVM farmSearch) {
         System.out.println(farmSearch);
         return farmService.searchFarms(farmSearch.getName(), farmSearch.getLocation(), farmSearch.getDate());
+    }
+
+
+    @GetMapping("/farm4000")
+    public List<Farm> getFarms4000(){
+        List<Farm> farms = farmService.getFarmsWithAreaLessThan4000();
+
+        if (farms != null) {
+            return farms;
+        }else {
+            return null;
+        }
     }
 
 }
