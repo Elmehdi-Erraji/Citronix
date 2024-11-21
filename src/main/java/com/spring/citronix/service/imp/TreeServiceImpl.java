@@ -1,10 +1,13 @@
 package com.spring.citronix.service.imp;
 
+import com.spring.citronix.domain.Field;
 import com.spring.citronix.domain.Tree;
 import com.spring.citronix.repository.TreeRepository;
 import com.spring.citronix.service.TreeService;
 import com.spring.citronix.web.errors.tree.TreeNotFoundException;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,15 +17,17 @@ import java.util.UUID;
 @Service
 public class TreeServiceImpl implements TreeService {
 
+    private static final int MAX_TREE_DENSITY_PER_HECTARE = 100;
     private final TreeRepository treeRepository;
 
     public TreeServiceImpl(TreeRepository treeRepository) {
         this.treeRepository = treeRepository;
     }
 
-
     @Override
     public Tree save(@Valid Tree tree) {
+        validateTree(tree);
+        tree.validatePlantingDate();
         return treeRepository.save(tree);
     }
 
@@ -37,8 +42,8 @@ public class TreeServiceImpl implements TreeService {
     }
 
     @Override
-    public List<Tree> findByFieldId(UUID fieldId) {
-        return treeRepository.findByFieldId(fieldId);
+    public Page<Tree> findByFieldId(UUID fieldId, Pageable pageable) {
+        return treeRepository.findByFieldId(fieldId, pageable);
     }
 
     @Override
@@ -51,5 +56,24 @@ public class TreeServiceImpl implements TreeService {
         Tree tree = treeRepository.findById(treeId)
                 .orElseThrow(() -> new TreeNotFoundException("Tree not found with ID: " + treeId));
         return tree.calculateProductivity();
+    }
+
+    private void validateTree(Tree tree) {
+        Field field = tree.getField();
+
+        List<Tree> existingTrees = treeRepository.findByFieldId(field.getId());
+
+        double fieldAreaInHectares = field.getArea() / 10000.0;
+
+        int maxAllowedTrees = (int) Math.floor(fieldAreaInHectares * MAX_TREE_DENSITY_PER_HECTARE);
+
+        if (existingTrees.size() >= maxAllowedTrees) {
+            throw new IllegalArgumentException("Tree density exceeds " + MAX_TREE_DENSITY_PER_HECTARE +
+                    " trees per hectare for field: " + field.getId() + ". Max allowed: " + maxAllowedTrees +
+                    " for field area: " + field.getArea() + " m².");
+        }
+        if (tree.calculateAge() > 20) {
+            throw new IllegalArgumentException("Tree is beyond its productive age (20 years) and cannot be added.");
+        }
     }
 }

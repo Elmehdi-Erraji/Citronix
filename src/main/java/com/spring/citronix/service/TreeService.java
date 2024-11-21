@@ -1,6 +1,8 @@
 package com.spring.citronix.service;
 
 import com.spring.citronix.domain.Tree;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +16,7 @@ public interface TreeService {
 
     List<Tree> findAll();
 
-    List<Tree> findByFieldId(UUID fieldId);
+    Page<Tree> findByFieldId(UUID fieldId, Pageable pageable);
 
     void delete(Tree tree);
 

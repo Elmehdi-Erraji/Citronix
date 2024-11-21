@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import jakarta.validation.constraints.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.time.LocalDate;
 
@@ -32,6 +34,9 @@ public class Farm {
     @Column(nullable = false)
     @PastOrPresent(message = "Creation date cannot be in the future")
     private LocalDate creationDate;
+
+    @OneToMany
+    private List<Field> fields= new ArrayList<>();
 
     public boolean isValidArea(double fieldAreaSum) {
         return fieldAreaSum < this.area;
