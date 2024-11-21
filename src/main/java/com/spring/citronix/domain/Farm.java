@@ -36,7 +36,7 @@ public class Farm {
     private LocalDate creationDate;
 
     @OneToMany
-    private List<Field> fields;
+    private List<Field> fields= new ArrayList<>();
 
     public boolean isValidArea(double fieldAreaSum) {
         return fieldAreaSum < this.area;
