@@ -4,10 +4,7 @@ package com.spring.citronix.web.rest;
 import com.spring.citronix.domain.Farm;
 import com.spring.citronix.domain.Field;
 import com.spring.citronix.service.FarmService;
-import com.spring.citronix.service.imp.FarmServiceWithFields;
-import com.spring.citronix.service.imp.FarmServiceWithNoFields;
 import com.spring.citronix.web.mapper.request.FarmMapper;
-import com.spring.citronix.web.vm.request.farm.FarmCreateVM;
 import com.spring.citronix.web.vm.request.farm.FarmDTO;
 import com.spring.citronix.web.vm.request.farm.FarmSearchVM;
 import com.spring.citronix.web.vm.request.farm.FarmUpdateVM;
@@ -15,7 +12,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,20 +25,14 @@ public class FarmController {
     private final FarmMapper farmMapper;
 
 
-    public FarmController(FarmServiceWithFields farmService, FarmMapper farmMapper) {
+    public FarmController(FarmService farmService, FarmMapper farmMapper) {
         this.farmService = farmService;
         this.farmMapper = farmMapper;
     }
 
     @PostMapping("/create")
-    public Farm createFarm(@RequestBody @Valid FarmDTO farmDTO) {
-        Farm farm = new Farm();
-        farm.setName(farmDTO.getName());
-        farm.setLocation(farmDTO.getLocation());
-        farm.setArea(farmDTO.getArea());
-        farm.setCreationDate(farmDTO.getCreationDate());
-
-
+    public Farm createFarm(@RequestBody @Valid Farm farmDTO) {
+        
         if (farmDTO.getFields() != null) {
             List<Field> fields = farmDTO.getFields().stream().map(listField -> {
                 Field field = new Field();

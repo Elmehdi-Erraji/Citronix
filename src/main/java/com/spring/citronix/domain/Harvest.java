@@ -29,7 +29,6 @@ public class Harvest {
     @Column(nullable = false)
     private double totalQuantity;
 
-
     @ManyToOne
     private Farm farm;
 
