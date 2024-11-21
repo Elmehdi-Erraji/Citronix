@@ -1,9 +1,12 @@
 package com.spring.citronix.web.errors;
 
+import com.spring.citronix.web.errors.field.InvalidFieldAreaException;
+import com.spring.citronix.web.errors.field.MaxFieldsInFarmException;
 import com.spring.citronix.web.errors.field.ResourceNotFoundException;
 import com.spring.citronix.web.errors.tree.TreeNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,6 +49,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TreeNotFoundException.class)
     public ResponseEntity<String> handleTreeNotFoundException(TreeNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidFieldAreaException.class)
+    public ResponseEntity<String> handleInvalidFieldAreaException(InvalidFieldAreaException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(MaxFieldsInFarmException.class)
+    public ResponseEntity<String> handleMaxFieldsInFarmException(MaxFieldsInFarmException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGenericException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred: " + ex.getMessage());
     }
 
 }

@@ -22,6 +22,7 @@ public class HarvestDetail {
     @ManyToOne(optional = false)
     private Tree tree;
 
-    @ManyToOne(optional = false)
+    @ManyToOne
+    @JoinColumn(name = "harvest_id")
     private Harvest harvest;
 }

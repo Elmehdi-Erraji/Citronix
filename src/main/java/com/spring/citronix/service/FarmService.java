@@ -1,13 +1,15 @@
 package com.spring.citronix.service;
 
 import com.spring.citronix.domain.Farm;
+import com.spring.citronix.web.vm.request.farm.FarmDTO;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface FarmService {
 
@@ -15,7 +17,7 @@ public interface FarmService {
 
     Optional<Farm> findById(UUID id);
 
-    List<Farm> findAll();
+    Page<Farm> findAll(Pageable pageable);
 
     void delete(Farm farm);
 
