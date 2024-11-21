@@ -10,15 +10,13 @@ import org.mapstruct.Mapping;
 public interface FarmMapper {
 
     // Map CreateFarmVM to Farm
-    @Mapping(target = "id", ignore = true) // ID is generated, not mapped from VM
+    @Mapping(target = "id", ignore = true)
     Farm toEntity(FarmCreateVM createFarmVM);
 
-    // Map UpdateFarmVM to Farm
     Farm toEntity(FarmUpdateVM updateFarmVM);
 
-    // Map Farm to CreateFarmVM (if needed)
     FarmCreateVM toCreateVM(Farm farm);
 
-    // Map Farm to UpdateFarmVM (if needed)
     FarmUpdateVM toUpdateVM(Farm farm);
+
 }

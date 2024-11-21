@@ -1,12 +1,13 @@
 package com.spring.citronix.service.imp;
 
 import com.spring.citronix.domain.Farm;
+import com.spring.citronix.domain.Field;
 import com.spring.citronix.repository.FarmRepository;
 import com.spring.citronix.repository.specifications.FarmSpecification;
 import com.spring.citronix.service.FarmService;
+import com.spring.citronix.service.FieldService;
 import com.spring.citronix.web.errors.farm.FarmNotFoundException;
 import com.spring.citronix.web.errors.farm.InvalidFarmException;
-import com.spring.citronix.web.vm.request.farm.FarmDTO;
 import jakarta.validation.Valid;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -16,27 +17,26 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 @Service
 public class FarmServiceImp implements FarmService {
 
     private final FarmRepository farmRepository;
+    private final FieldService fieldService;
 
-    public FarmServiceImp(FarmRepository farmRepository) {
+    public FarmServiceImp(FarmRepository farmRepository, FieldService fieldService) {
         this.farmRepository = farmRepository;
+        this.fieldService = fieldService;
     }
 
     @Override
     public Farm save(@Valid Farm farm) {
         validateFarm(farm);
+        fieldAreaSumCheck(farm);
         return farmRepository.save(farm);
     }
-
-    @Override
-    public Farm saveFromDTO(Farm farm) {
-        return null;
-    }
-
-
 
     @Override
     public Optional<Farm> findById(UUID id) {
@@ -48,19 +48,21 @@ public class FarmServiceImp implements FarmService {
     }
 
     @Override
-    public List<Farm> findAll() {
-        return farmRepository.findAll();
+    public Page<Farm> findAll(Pageable pageable) {
+        return farmRepository.findAll(pageable);
     }
 
     @Override
     public void delete(Farm farm) {
+        if (farm.getFields() != null && !farm.getFields().isEmpty()) {
+            for (Field field : farm.getFields()) {
+                fieldService.delete(field.getId());
+            }
+        }
         farmRepository.delete(farm);
     }
 
-    @Override
-    public List<Farm> getFarmsWithAreaLessThan4000() {
-        return List.of();
-    }
+
 
     @Override
     public List<Farm> searchFarms(String name, String location, LocalDate startDate) {
@@ -94,6 +96,26 @@ public class FarmServiceImp implements FarmService {
         }
         if (farm.getCreationDate() == null) {
             throw new InvalidFarmException("Creation date is required.");
+        }
+        if (farm.getCreationDate().isAfter(LocalDate.now())) {
+            throw new InvalidFarmException("Creation date cannot be in the future.");
+        }
+    }
+
+    private void fieldAreaSumCheck(Farm farm) {
+        if (farm.getFields() != null && !farm.getFields().isEmpty()) {
+            double totalFieldArea = farm.getFields().stream()
+                    .mapToDouble(Field::getArea)
+                    .sum();
+            if (!farm.isValidArea(totalFieldArea)) {
+                throw new InvalidFarmException("Total area of fields > the farm's available area.");
+            }
+
+            for (Field field : farm.getFields()) {
+                if (field.getArea() <= 0) {
+                    throw new InvalidFarmException("Field area must be more than 0.");
+                }
+            }
         }
     }
 }

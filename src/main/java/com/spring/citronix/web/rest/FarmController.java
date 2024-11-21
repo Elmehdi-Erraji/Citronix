@@ -1,14 +1,14 @@
 package com.spring.citronix.web.rest;
 
-
 import com.spring.citronix.domain.Farm;
 import com.spring.citronix.domain.Field;
 import com.spring.citronix.service.FarmService;
 import com.spring.citronix.web.mapper.request.FarmMapper;
-import com.spring.citronix.web.vm.request.farm.FarmDTO;
+
 import com.spring.citronix.web.vm.request.farm.FarmSearchVM;
 import com.spring.citronix.web.vm.request.farm.FarmUpdateVM;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,13 +17,15 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 @RestController
 @RequestMapping("/api/farm")
 public class FarmController {
 
     private final FarmService farmService;
     private final FarmMapper farmMapper;
-
 
     public FarmController(FarmService farmService, FarmMapper farmMapper) {
         this.farmService = farmService;
@@ -32,7 +34,7 @@ public class FarmController {
 
     @PostMapping("/create")
     public Farm createFarm(@RequestBody @Valid Farm farmDTO) {
-        
+
         if (farmDTO.getFields() != null) {
             List<Field> fields = farmDTO.getFields().stream().map(listField -> {
                 Field field = new Field();
@@ -40,21 +42,23 @@ public class FarmController {
                 return field;
             }).collect(Collectors.toList());
 
-            farm.setFields(fields);
+            farmDTO.setFields(fields);
         }
 
-        return farmService.saveFromDTO(farm);
+        return farmService.save(farmDTO);
     }
 
-
     @GetMapping("/findById/{id}")
-    public Optional<Farm> findById(@PathVariable UUID id) {
-        return farmService.findById(id);
+    public ResponseEntity<Farm> findById(@PathVariable UUID id) {
+        return farmService.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/findAll")
-    public List<Farm> findAll() {
-        return farmService.findAll();
+    public Page<Farm> findAll(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return farmService.findAll(pageable);
     }
 
     @DeleteMapping("/delete/{id}")
@@ -62,10 +66,9 @@ public class FarmController {
         Optional<Farm> farm = farmService.findById(id);
         if (farm.isPresent()) {
             farmService.delete(farm.get());
-            return ResponseEntity.ok("Farm deleted");
+            return ResponseEntity.ok("Farm deleted successfully.");
         }
-
-        return ResponseEntity.ok("Farm not deleted");
+        return ResponseEntity.status(404).body("Farm not found.");
     }
 
     @PutMapping("/update/{id}")
@@ -82,23 +85,13 @@ public class FarmController {
         return ResponseEntity.ok(savedFarm);
     }
 
-
     @PostMapping("/search")
-    public List<Farm> searchFarm(@RequestBody FarmSearchVM farmSearch) {
-        System.out.println(farmSearch);
-        return farmService.searchFarms(farmSearch.getName(), farmSearch.getLocation(), farmSearch.getDate());
+    public ResponseEntity<List<Farm>> searchFarm(@RequestBody @Valid FarmSearchVM farmSearch) {
+        List<Farm> farms = farmService.searchFarms(
+                farmSearch.getName(),
+                farmSearch.getLocation(),
+                farmSearch.getDate()
+        );
+        return ResponseEntity.ok(farms);
     }
-
-
-    @GetMapping("/farm4000")
-    public List<Farm> getFarms4000(){
-        List<Farm> farms = farmService.getFarmsWithAreaLessThan4000();
-
-        if (farms != null) {
-            return farms;
-        }else {
-            return null;
-        }
-    }
-
 }
