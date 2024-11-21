@@ -46,6 +46,10 @@ public class FieldServiceImp implements FieldService {
         return fieldRepository.findByFarmId(farmId, pageable);
     }
 
+    public List<Field> findByFatrId(UUID id){
+        return fieldRepository.findFieldByFarmId(id);
+    }
+
     @Override
     public boolean isTreeDensityValid(UUID fieldId, int numberOfTrees) {
         Field field = fieldRepository.findById(fieldId)

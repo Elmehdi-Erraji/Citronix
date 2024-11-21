@@ -1,5 +1,6 @@
 package com.spring.citronix.repository;
 
+import com.spring.citronix.domain.Farm;
 import com.spring.citronix.domain.Harvest;
 import com.spring.citronix.domain.enums.Season;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,4 +14,6 @@ public interface HarvestRepository extends JpaRepository<Harvest, UUID> {
 
     Optional<Harvest> findByFarmIdAndSeason(UUID farmId, Season season);
     List<Harvest> findBySeason(Season season);
+
+    List<Harvest> findByFarmAndSeason(Farm farm, Season season);
 }

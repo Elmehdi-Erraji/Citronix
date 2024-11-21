@@ -23,7 +23,6 @@ public class Field {
     private double area;
 
     @ManyToOne(optional = false)
-    @JsonIgnoreProperties({"fields"})
     private Farm farm;
 
     @OneToMany(mappedBy = "field")

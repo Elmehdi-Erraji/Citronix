@@ -32,7 +32,7 @@ public class Harvest {
     @ManyToOne
     private Farm farm;
 
-    @OneToMany(mappedBy = "harvest")
+    @OneToMany(mappedBy = "harvest",fetch = FetchType.EAGER)
     private List<HarvestDetail> harvestDetails;
 
     @OneToMany(mappedBy = "harvest")
