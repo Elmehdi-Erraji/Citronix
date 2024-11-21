@@ -36,7 +36,7 @@ public class FieldServiceImp implements FieldService {
     @Override
     public void delete(UUID id) {
         if (!fieldRepository.existsById(id)) {
-            throw new FieldNotFoundException(id);
+            throw new FieldNotFoundException("field not found");
         }
         fieldRepository.deleteById(id);
     }
@@ -49,7 +49,7 @@ public class FieldServiceImp implements FieldService {
     @Override
     public boolean isTreeDensityValid(UUID fieldId, int numberOfTrees) {
         Field field = fieldRepository.findById(fieldId)
-                .orElseThrow(() -> new FieldNotFoundException(fieldId));
+                .orElseThrow(() -> new FieldNotFoundException("field not found"));
 
         if (!field.isTreeDensityValid(numberOfTrees)) {
             throw new InvalidTreeDensityException(fieldId, numberOfTrees);
@@ -58,11 +58,10 @@ public class FieldServiceImp implements FieldService {
         return true;
     }
 
-    @Override
-    public Optional<Field> findById(UUID id) {
-        return fieldRepository.findById(id);
+    public Optional<Field> findById(UUID fieldId) {
+        return Optional.ofNullable(fieldRepository.findById(fieldId)
+                .orElseThrow(() -> new FieldNotFoundException("Field not found with id: ")));
     }
-
 
     private void validateFieldArea(Field field)  {
         double farmArea = field.getFarm().getArea();
