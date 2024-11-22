@@ -70,7 +70,7 @@ class FarmServiceTest {
 
     @Test
     void saveFarm_InvalidName() {
-        farm.setName("");  // Invalid name
+        farm.setName("");
 
         InvalidFarmException exception = assertThrows(InvalidFarmException.class, () -> farmService.save(farm));
         assertEquals("Farm name is required.", exception.getMessage());
@@ -91,7 +91,7 @@ class FarmServiceTest {
         when(farmRepository.findById(farm.getId())).thenReturn(Optional.empty());
 
         FarmNotFoundException exception = assertThrows(FarmNotFoundException.class, () -> farmService.findById(farm.getId()));
-        assertEquals("Farm with ID " + farm.getId() + " not found.", exception.getMessage());  // Adjusted to match the actual message
+        assertEquals("Farm with ID " + farm.getId() + " not found.", exception.getMessage());
     }
 
     @Test

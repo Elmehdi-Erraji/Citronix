@@ -20,6 +20,9 @@ public interface HarvestDetailRepository extends JpaRepository<HarvestDetail, In
     // Method to find HarvestDetails by Tree ID
     List<HarvestDetail> findByTreeId(UUID treeId);
 
+    boolean existsByTreeIdAndHarvestSeason(UUID treeId, Season season);
+
+
     @Query("SELECT hd FROM HarvestDetail hd WHERE hd.harvest.season = :season AND hd.tree = :tree")
     List<HarvestDetail> findByTreeAndSeason(@Param("tree") Tree tree, @Param("season") Season season);
 }
