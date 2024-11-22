@@ -61,13 +61,11 @@ public class TreeServiceImpl implements TreeService {
     public void delete(UUID treeId) {
         Optional<Tree> tree = findById(treeId);
         if (tree.isPresent()) {
-            // Delete all associated harvest details (using HarvestDetailService)
             List<HarvestDetail> harvestDetails = harvestDetailService.findByTreeId(treeId);
             for (HarvestDetail detail : harvestDetails) {
-                harvestDetailService.delete(detail.getId()); // Call delete from HarvestDetailService
+                harvestDetailService.delete(detail.getId());
             }
 
-            // Now delete the tree
             treeRepository.delete(tree.get());
         } else {
             throw new EntityNotFoundException("Tree not found with ID: " + treeId);

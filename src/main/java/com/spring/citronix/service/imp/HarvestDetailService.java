@@ -28,12 +28,9 @@ public class HarvestDetailService {
         this.treeRepository = treeRepository;
     }
 
-    // Fetch HarvestDetails for a given Field
     public List<HarvestDetail> findByFieldId(UUID fieldId) {
-        // Get trees that belong to the specified field
         List<Tree> trees = treeRepository.findByFieldId(fieldId);
 
-        // Retrieve all HarvestDetails associated with these trees
         List<HarvestDetail> harvestDetails = new ArrayList<>();
         for (Tree tree : trees) {
             harvestDetails.addAll(harvestDetailRepository.findByTree(tree));
@@ -42,22 +39,18 @@ public class HarvestDetailService {
         return harvestDetails;
     }
 
-    // Delete HarvestDetail by its ID
     public void delete(UUID harvestDetailId) {
         HarvestDetail harvestDetail = (HarvestDetail) harvestDetailRepository.findById(harvestDetailId)
                 .orElseThrow(() -> new IllegalArgumentException("HarvestDetail not found"));
 
-        // Get the harvest related to this detail
         Harvest harvest = harvestDetail.getHarvest();
 
-        // Remove the harvest detail from the harvest's list of details
         harvest.getHarvestDetails().remove(harvestDetail);
 
-        // Delete the harvest detail
         harvestDetailRepository.deleteById(harvestDetail.getId());
     }
 
-    // Find HarvestDetails by Tree ID
+
     public List<HarvestDetail> findByTreeId(UUID treeId) {
         return harvestDetailRepository.findByTreeId(treeId);
     }

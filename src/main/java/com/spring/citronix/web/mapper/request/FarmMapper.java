@@ -9,7 +9,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface FarmMapper {
 
-    // Map CreateFarmVM to Farm
     @Mapping(target = "id", ignore = true)
     Farm toEntity(FarmCreateVM createFarmVM);
 

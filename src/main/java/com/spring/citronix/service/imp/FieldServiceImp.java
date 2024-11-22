@@ -42,10 +42,9 @@ public class FieldServiceImp implements FieldService {
     public void delete(UUID id) {
         Optional<Field> field = findById(id);
         if (field.isPresent()) {
-            // Delete all trees related to this field (including their harvest details)
             List<Tree> trees = treeService.findByFieldId(id);
             for (Tree tree : trees) {
-                treeService.delete(tree.getId()); // TreeService already handles harvest detail deletion
+                treeService.delete(tree.getId());
             }
 
             fieldRepository.delete(field.get());

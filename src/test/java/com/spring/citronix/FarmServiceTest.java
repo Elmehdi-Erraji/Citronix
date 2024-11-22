@@ -1,4 +1,3 @@
-/*
 package com.spring.citronix;
 
 import com.spring.citronix.domain.Farm;
@@ -8,18 +7,15 @@ import com.spring.citronix.service.FieldService;
 import com.spring.citronix.service.imp.FarmServiceImp;
 import com.spring.citronix.web.errors.FarmNotFoundException;
 import com.spring.citronix.web.errors.InvalidFarmException;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +23,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class FarmServiceTest {
 
     @Mock
@@ -38,129 +35,94 @@ class FarmServiceTest {
     @InjectMocks
     private FarmServiceImp farmService;
 
-    private Farm farm;
-    private Field field;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
+    private Farm createValidFarm() {
+        return new Farm(
+                UUID.randomUUID(),
+                "Farm A",
+                "Location A",
+                100.0,
+                LocalDate.now(),
+                List.of()
+        );
+    }
 
-        // Setup common objects for tests
-        field = new Field();
-        field.setArea(20);
-        farm = new Farm();
-        farm.setId(UUID.randomUUID());
-        farm.setName("Farm 1");
-        farm.setLocation("Location 1");
-        farm.setArea(100);
-        farm.setCreationDate(LocalDate.now());
-        farm.setFields(Arrays.asList(field));
+
+    private Farm createInvalidFarm() {
+        return new Farm(
+                UUID.randomUUID(),
+                "",
+                "",
+                -10.0,
+                LocalDate.now().plusDays(1),
+                List.of()
+        );
     }
 
     @Test
-    void saveFarm_Valid() {
-        when(farmRepository.save(farm)).thenReturn(farm);
+    void save_ValidFarm_Success() {
+        Farm farm = createValidFarm();
+        when(farmRepository.save(any(Farm.class))).thenReturn(farm);
 
         Farm savedFarm = farmService.save(farm);
 
         assertNotNull(savedFarm);
-        assertEquals(farm.getName(), savedFarm.getName());
+        assertEquals("Farm A", savedFarm.getName());
         verify(farmRepository, times(1)).save(farm);
     }
 
     @Test
-    void saveFarm_InvalidName() {
-        farm.setName("");
-
-        InvalidFarmException exception = assertThrows(InvalidFarmException.class, () -> farmService.save(farm));
-        */
-/*assertEquals("Farm name is required.", exception.getMessage());*//*
-
-        verify(farmRepository, never()).save(farm);
+    void save_InvalidFarm_ThrowsException() {
+        Farm invalidFarm = createInvalidFarm();
+        assertThrows(InvalidFarmException.class, () -> farmService.save(invalidFarm));
+        verify(farmRepository, never()).save(any());
     }
 
     @Test
-    void findFarmById_Found() {
-        when(farmRepository.findById(farm.getId())).thenReturn(Optional.of(farm));
+    void findById_ValidId_Success() {
+        UUID farmId = UUID.randomUUID();
+        Farm farm = createValidFarm();
+        when(farmRepository.findById(farmId)).thenReturn(Optional.of(farm));
 
-        Optional<Farm> foundFarm = farmService.findById(farm.getId());
+        Optional<Farm> foundFarm = farmService.findById(farmId);
 
         assertTrue(foundFarm.isPresent());
-        assertEquals(farm.getId(), foundFarm.get().getId());
+        assertEquals("Farm A", foundFarm.get().getName());
+        verify(farmRepository, times(1)).findById(farmId);
     }
 
     @Test
-    void findFarmById_NotFound() {
-        when(farmRepository.findById(farm.getId())).thenReturn(Optional.empty());
+    void findById_InvalidId_ThrowsException() {
+        UUID farmId = UUID.randomUUID();
+        when(farmRepository.findById(farmId)).thenReturn(Optional.empty());
 
-        FarmNotFoundException exception = assertThrows(FarmNotFoundException.class, () -> farmService.findById(farm.getId()));
-        assertEquals("Farm with ID " + farm.getId() + " not found.", exception.getMessage());
+        assertThrows(FarmNotFoundException.class, () -> farmService.findById(farmId));
+        verify(farmRepository, times(1)).findById(farmId);
     }
 
     @Test
-    void getAllFarms() {
-        Page<Farm> farms = new PageImpl<>(Arrays.asList(farm));
-        when(farmRepository.findAll(any(Pageable.class))).thenReturn(farms);
+    void findAll_WithPageable_Success() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Farm farm = createValidFarm();
+        Page<Farm> farmsPage = new PageImpl<>(List.of(farm));
+        when(farmRepository.findAll(pageable)).thenReturn(farmsPage);
 
-        Page<Farm> result = farmService.findAll(mock(Pageable.class));
+        Page<Farm> result = farmService.findAll(pageable);
 
-        assertNotNull(result);
-        assertEquals(1, result.getTotalElements());
-        assertEquals(farm.getName(), result.getContent().get(0).getName());
+        assertEquals(1, result.getContent().size());
+        assertEquals("Farm A", result.getContent().get(0).getName());
+        verify(farmRepository, times(1)).findAll(pageable);
     }
 
     @Test
-    void deleteFarm_WithFields() {
-        farm.setFields(Arrays.asList(field));
-        field.setId(UUID.randomUUID());
+    void findAll_NoFarms_ReturnsEmptyPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(farmRepository.findAll(pageable)).thenReturn(Page.empty());
 
-        when(farmRepository.findById(farm.getId())).thenReturn(Optional.of(farm));
-        doNothing().when(fieldService).delete(any(UUID.class));
-        doNothing().when(farmRepository).delete(farm);
+        Page<Farm> result = farmService.findAll(pageable);
 
-        farmService.delete(farm);
-
-        verify(fieldService, times(1)).delete(any(UUID.class));
-        verify(farmRepository, times(1)).delete(farm);
+        assertTrue(result.isEmpty());
+        verify(farmRepository, times(1)).findAll(pageable);
     }
 
-    @Test
-    void deleteFarm_WithoutFields() {
-        farm.setFields(null);
-
-        when(farmRepository.findById(farm.getId())).thenReturn(Optional.of(farm));
-        doNothing().when(farmRepository).delete(farm);
-
-        farmService.delete(farm);
-
-        verify(farmRepository, times(1)).delete(farm);
-    }
-
-    @Test
-    void searchFarms_Valid() {
-        when(farmRepository.findAll(any(Specification.class))).thenReturn(Arrays.asList(farm));
-
-        List<Farm> result = farmService.searchFarms("Farm", "Location", LocalDate.now().minusDays(1));
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(farm.getName(), result.get(0).getName());
-    }
-
-    @Test
-    void searchFarms_InvalidName() {
-        InvalidFarmException exception = assertThrows(InvalidFarmException.class, () -> farmService.searchFarms("", "Location", LocalDate.now()));
-        assertEquals("Farm name cannot be empty.", exception.getMessage());
-    }
-
-
-
-    @Test
-    void checkFieldArea_InvalidFieldSize() {
-        field.setArea(0);
-
-        InvalidFarmException exception = assertThrows(InvalidFarmException.class, () -> farmService.save(farm));
-        assertEquals("Field area must be more than 0.", exception.getMessage());
-    }
 }
-*/

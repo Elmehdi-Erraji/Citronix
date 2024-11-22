@@ -27,7 +27,6 @@ public class Field {
     private Farm farm;
 
     @OneToMany(mappedBy = "field")
-    @JsonIgnoreProperties({"field"})
     private List<Tree> trees;
 
     public boolean isTreeDensityValid(int numberOfTrees) {

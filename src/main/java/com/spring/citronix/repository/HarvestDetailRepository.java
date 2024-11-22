@@ -15,19 +15,10 @@ import java.util.UUID;
 @Repository
 public interface HarvestDetailRepository extends JpaRepository<HarvestDetail, Integer> {
 
-
     boolean existsByTreeIdAndHarvestSeason(UUID treeId, Season season);
-
-
-    @Query("SELECT hd FROM HarvestDetail hd WHERE hd.harvest.season = :season AND hd.tree = :tree")
-    List<HarvestDetail> findByTreeAndSeason(@Param("tree") Tree tree, @Param("season") Season season);
-
-    // Use deleteById to properly delete by UUID
     void deleteById(UUID id);
-
     Optional<Object> findById(UUID harvestDetailId);
-
     List<HarvestDetail> findByTreeId(UUID treeId);
     List<HarvestDetail> findByTree(Tree tree);
-    List<HarvestDetail> findByHarvestId(UUID harvestId);
+
 }

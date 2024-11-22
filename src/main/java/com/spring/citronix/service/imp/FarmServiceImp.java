@@ -56,10 +56,9 @@ public class FarmServiceImp implements FarmService {
     @Transactional
     @Override
     public void delete(Farm farm) {
-        // Delete all associated fields and their trees
         List<Field> fields = fieldService.findByFarmId(farm.getId());
         for (Field field : fields) {
-            fieldService.delete(field.getId()); // Ensure this handles trees and harvest details
+            fieldService.delete(field.getId());
         }
 
         farmRepository.delete(farm);
