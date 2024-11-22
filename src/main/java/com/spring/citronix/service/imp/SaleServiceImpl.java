@@ -2,47 +2,77 @@ package com.spring.citronix.service.imp;
 
 import com.spring.citronix.domain.Harvest;
 import com.spring.citronix.domain.Sale;
-import com.spring.citronix.repository.HarvestRepository;
 import com.spring.citronix.repository.SaleRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.spring.citronix.service.HarvestService;
+import com.spring.citronix.service.SalesService;
+import jakarta.transaction.Transactional;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.util.UUID;
 
 @Service
-public class SaleServiceImpl {
+@Transactional
+public class SaleServiceImpl implements SalesService {
+    private final SaleRepository saleRepository;
+    private final HarvestService harvestService;
 
-    private final SaleRepository   saleRepository;
-    private final HarvestRepository harvestRepository;
-
-    public SaleServiceImpl(SaleRepository saleRepository, HarvestRepository harvestRepository) {
+    public SaleServiceImpl(SaleRepository saleRepository, @Lazy HarvestService harvestService) {
         this.saleRepository = saleRepository;
-        this.harvestRepository = harvestRepository;
+        this.harvestService = harvestService;
     }
-
+    @Override
     public Sale createSale(Sale sale) {
+        Harvest harvest = harvestService.getHarvestById(sale.getHarvest().getId());
 
-        System.out.println(sale.getClass());
-
-        if (sale.getHarvest().getId() == null) {
-            throw new IllegalArgumentException("Harvest cannot be null.");
-        }
-
-        // Check if the harvest exists in the repository
-        Optional<Harvest> harvestOpt = harvestRepository.findById(sale.getHarvest().getId());
-
-        if (harvestOpt.isEmpty()) {
-            throw new IllegalArgumentException("Harvest not found.");
-        }
-
-        // Set the found harvest to the sale
-        sale.setHarvest(harvestOpt.get());
-
-        // Calculate and set the revenue
+        validateHarvestQuantity(harvest, sale.getQuantity());
         sale.setRevenue(sale.calculateRevenue(sale.getQuantity()));
-
-        // Save and return the sale
         return saleRepository.save(sale);
     }
 
+    @Override
+    public Sale updateSale(UUID saleId, Sale updatedSale) {
+        Sale existingSale = getSale(saleId);
+        Harvest harvest = harvestService.getHarvestById(updatedSale.getHarvest().getId());
+        validateHarvestQuantity(harvest, updatedSale.getQuantity());
+        updatedSale.setRevenue(updatedSale.calculateRevenue(updatedSale.getQuantity()));
+
+        existingSale.setQuantity(updatedSale.getQuantity());
+        existingSale.setUnitPrice(updatedSale.getUnitPrice());
+        existingSale.setClient(updatedSale.getClient());
+        existingSale.setDate(updatedSale.getDate());
+        existingSale.setHarvest(harvest);
+        existingSale.setRevenue(updatedSale.getRevenue());
+
+        return saleRepository.save(existingSale);
+    }
+
+    @Override
+    public void deleteSale(UUID saleId) {
+        Sale sale = getSale(saleId);
+        saleRepository.delete(sale);
+    }
+
+    @Override
+    public Sale getSale(UUID saleId) {
+        return saleRepository.findById(saleId)
+                .orElseThrow(() -> new IllegalArgumentException("Sale not found"));
+    }
+
+    @Override
+    public Page<Sale> listSale(Pageable pageable) {
+        return saleRepository.findAll(pageable);
+    }
+
+    private void validateHarvestQuantity(Harvest harvest, double saleQuantity) {
+        double totalSoldQuantity = harvest.getSales().stream()
+                .mapToDouble(Sale::getQuantity)
+                .sum();
+
+        if (totalSoldQuantity + saleQuantity > harvest.getTotalQuantity()) {
+            throw new IllegalArgumentException("Insufficient harvest quantity");
+        }
+    }
 }

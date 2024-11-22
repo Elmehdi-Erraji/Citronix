@@ -14,7 +14,7 @@ import java.util.UUID;
 public class HarvestRequestVM {
 
     @NotNull(message = "Harvest date cannot be null")
-    @PastOrPresent(message = "Harvest date must be in the past or present")
+    @PastOrPresent(message = "Harvest date must not be in the past or future")
     private LocalDate harvestDate;
 
     @NotNull(message = "Entity ID is required")

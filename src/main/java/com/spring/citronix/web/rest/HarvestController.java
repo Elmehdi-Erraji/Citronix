@@ -4,8 +4,8 @@ import com.spring.citronix.domain.Harvest;
 import com.spring.citronix.domain.enums.Season;
 import com.spring.citronix.service.HarvestService;
 import com.spring.citronix.web.mapper.request.HarvestMapper;
-import com.spring.citronix.web.mapper.response.HarvestResponse;
 import com.spring.citronix.web.vm.request.harvest.HarvestRequestVM;
+import com.spring.citronix.web.vm.response.harvest.HarvestResponse;
 import com.spring.citronix.web.vm.response.harvest.HarvestResponseVM;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class HarvestController {
     private final HarvestService harvestService;
     private final HarvestMapper harvestMapper;
 
-    @PostMapping("harvests")
+    @PostMapping("/harvests")
     public ResponseEntity<HarvestResponseVM> HarvestField(@Valid @RequestBody HarvestRequestVM requestVM) {
 
         Harvest harvest = harvestService.harvestField(requestVM.getHarvestDate(), requestVM.getItem());
@@ -41,7 +41,7 @@ public class HarvestController {
 
     }
 
-    @PostMapping("harvests/all")
+    @PostMapping("/harvests/all")
     public ResponseEntity<HarvestResponseVM> HarvestFarm(@Valid @RequestBody HarvestRequestVM requestVM) {
 
         Harvest harvest = harvestService.harvestFarm(requestVM.getHarvestDate(), requestVM.getItem());
@@ -58,16 +58,14 @@ public class HarvestController {
         return ResponseEntity.ok(harvestMapper.toResponse(harvest));
     }
 
-    @GetMapping
+    @GetMapping("/findAll")
     public ResponseEntity<Page<HarvestResponse>> listHarvests(
-            @RequestParam(required = false) Season season,
-            @RequestParam(required = false) Integer year,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "harvestDate,desc") String[] sort
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(getSortOrders(sort)));
-        Page<Harvest> harvests = harvestService.getAllHarvests(season, year, pageable);
+        Page<Harvest> harvests = harvestService.getAllHarvests(pageable);
         return ResponseEntity.ok(harvests.map(harvestMapper::toResponse));
     }
 

@@ -4,163 +4,217 @@ import com.spring.citronix.domain.*;
 import com.spring.citronix.domain.enums.Season;
 import com.spring.citronix.repository.HarvestDetailRepository;
 import com.spring.citronix.repository.HarvestRepository;
-import com.spring.citronix.service.FarmService;
 import com.spring.citronix.service.FieldService;
 import com.spring.citronix.service.HarvestService;
-import com.spring.citronix.web.errors.harvest.HarvestNotFoundException;
+import com.spring.citronix.service.SalesService;
+import com.spring.citronix.service.TreeService;
 import com.spring.citronix.web.vm.request.harvest.HarvestRequestVM;
-import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class HarvestServiceImpl implements HarvestService {
 
     private final FieldService fieldService;
-    private final FarmService farmService;
+    private final TreeService treeService;
     private final HarvestRepository harvestRepository;
     private final HarvestDetailRepository harvestDetailRepository;
+    private final HarvestDetailService harvestDetailService;
+    private final SalesService salesService;
 
-    public HarvestServiceImpl(FieldService fieldService, FarmService farmService, HarvestRepository harvestRepository,
-                              HarvestDetailRepository harvestDetailRepository) {
-        this.fieldService = fieldService;
-        this.farmService = farmService;
-        this.harvestRepository = harvestRepository;
-        this.harvestDetailRepository = harvestDetailRepository;
-    }
+
 
     @Override
     public Harvest harvestField(LocalDate harvestDate, UUID fieldId) {
-        Field field = fieldService.findById(fieldId)
-                .orElseThrow(() -> new EntityNotFoundException("Field not found with ID: " + fieldId));
-        Season season = determineSeason(harvestDate);
+        validateHarvestYear(harvestDate);
+        Field field = validateFieldExistence(fieldId);
+        validateFieldNotAlreadyHarvested(fieldId, harvestDate);
+        List<Tree> trees = validateTreesInField(fieldId);
+        List<HarvestDetail> harvestDetails = createHarvestDetailsForTrees(trees, harvestDate);
 
-        validateUniqueSeasonHarvest(field, season);
+        if (harvestDetails.isEmpty()) {
+            throw new IllegalArgumentException("No valid trees found for harvesting in the field.");
+        }
 
-        Harvest harvest = createInitialHarvest(harvestDate, season);
-        List<HarvestDetail> harvestDetails = generateHarvestDetails(field, harvest, harvestDate, season);
+        double totalQuantity = harvestDetails.stream()
+                .mapToDouble(HarvestDetail::getQuantity)
+                .sum();
 
-        return finalizeHarvest(harvest, harvestDetails);
+        Harvest harvest = new Harvest();
+        harvest.setHarvestDate(harvestDate);
+        harvest.setSeason(determineSeason(harvestDate));
+        harvest.setTotalQuantity(totalQuantity);
+        harvest.setHarvestDetails(harvestDetails);
+
+        Harvest savedHarvest = harvestRepository.save(harvest);
+        saveHarvestDetails(savedHarvest, harvestDetails);
+
+        return savedHarvest;
+    }
+
+    private void validateHarvestYear(LocalDate harvestDate) {
+        int currentYear = LocalDate.now().getYear();
+        if (harvestDate.getYear() != currentYear) {
+            throw new IllegalArgumentException("Harvest year must be the current year.");
+        }
+    }
+
+    private Field validateFieldExistence(UUID fieldId) {
+        return fieldService.findById(fieldId)
+                .orElseThrow(() -> new IllegalArgumentException("Field not found with id: " + fieldId));
+    }
+
+    private void validateFieldNotAlreadyHarvested(UUID fieldId, LocalDate harvestDate) {
+        Season currentSeason = determineSeason(harvestDate);
+        boolean hasHarvest = harvestRepository.existsByFieldIdAndSeason(fieldId, currentSeason);
+        if (hasHarvest) {
+            throw new IllegalArgumentException("Field has already been harvested for this season.");
+        }
+    }
+
+    private List<Tree> validateTreesInField(UUID fieldId) {
+        List<Tree> trees = treeService.findByFieldId(fieldId, Pageable.unpaged()).getContent();
+        if (trees.isEmpty()) {
+            throw new IllegalArgumentException("No trees available in the field for harvesting.");
+        }
+        return trees;
+    }
+
+    private List<HarvestDetail> createHarvestDetailsForTrees(List<Tree> trees, LocalDate harvestDate) {
+        List<HarvestDetail> harvestDetails = new ArrayList<>();
+        Season currentSeason = determineSeason(harvestDate);
+
+        for (Tree tree : trees) {
+            if (tree.calculateAge() > 20 || hasTreeBeenHarvestedInSeason(tree.getId(), currentSeason)) continue;
+            double treeProductivity = treeService.calculateProductivity(tree.getId());
+            HarvestDetail detail = new HarvestDetail();
+            detail.setTree(tree);
+            detail.setQuantity(treeProductivity);
+            harvestDetails.add(detail);
+        }
+        return harvestDetails;
+    }
+
+    private boolean hasTreeBeenHarvestedInSeason(UUID treeId, Season season) {
+        return harvestDetailRepository.existsByTreeIdAndHarvestSeason(treeId, season);
+    }
+
+    private void saveHarvestDetails(Harvest savedHarvest, List<HarvestDetail> harvestDetails) {
+        for (HarvestDetail detail : harvestDetails) {
+            detail.setHarvest(savedHarvest);
+            harvestDetailRepository.save(detail);
+        }
+    }
+
+    private Season determineSeason(LocalDate harvestDate) {
+        int month = harvestDate.getMonthValue();
+        if (month >= 3 && month <= 5) {
+            return Season.SPRING;
+        } else if (month >= 6 && month <= 8) {
+            return Season.SUMMER;
+        } else if (month >= 9 && month <= 11) {
+            return Season.FALL;
+        } else {
+            return Season.WINTER;
+        }
     }
 
     @Override
     public Harvest harvestFarm(LocalDate harvestDate, UUID farmId) {
-        Farm farm = farmService.findById(farmId)
-                .orElseThrow(() -> new EntityNotFoundException("Farm not found with ID: " + farmId));
-        List<Field> fields = farm.getFields();
+        validateHarvestYear(harvestDate);
+        List<Field> fields = validateFieldsInFarm(farmId);
 
-        Season season = determineSeason(harvestDate);
-        Harvest harvest = createInitialHarvest(harvestDate, season);
-        List<HarvestDetail> harvestDetails = new ArrayList<>();
+        double totalFarmQuantity = 0.0;
+        List<HarvestDetail> allHarvestDetails = new ArrayList<>();
+        List<String> skippedFields = new ArrayList<>();
 
         for (Field field : fields) {
-            validateUniqueSeasonHarvest(field, season);
-            harvestDetails.addAll(generateHarvestDetails(field, harvest, harvestDate, season));
+            try {
+                validateFieldNotAlreadyHarvested(field.getId(), harvestDate);
+                List<Tree> trees = validateTreesInField(field.getId());
+                List<HarvestDetail> harvestDetailsForField = createHarvestDetailsForTrees(trees, harvestDate);
+
+                if (harvestDetailsForField.isEmpty()) {
+                    skippedFields.add("Field with ID: " + field.getId() + " has no valid trees for harvesting.");
+                    continue;
+                }
+
+                double totalQuantityForField = harvestDetailsForField.stream()
+                        .mapToDouble(HarvestDetail::getQuantity)
+                        .sum();
+                totalFarmQuantity += totalQuantityForField;
+                allHarvestDetails.addAll(harvestDetailsForField);
+            } catch (Exception e) {
+                skippedFields.add("Error processing field with ID: " + field.getId() + " - " + e.getMessage());
+            }
         }
-        return finalizeHarvest(harvest, harvestDetails);
+
+        if (allHarvestDetails.isEmpty()) {
+            throw new IllegalArgumentException("No valid harvests were found for any of the fields.");
+        }
+
+        Harvest farmHarvest = new Harvest();
+        farmHarvest.setHarvestDate(harvestDate);
+        farmHarvest.setSeason(determineSeason(harvestDate));
+        farmHarvest.setTotalQuantity(totalFarmQuantity);
+        farmHarvest.setHarvestDetails(allHarvestDetails);
+
+        Harvest savedFarmHarvest = harvestRepository.save(farmHarvest);
+        saveHarvestDetails(savedFarmHarvest, allHarvestDetails);
+
+        if (!skippedFields.isEmpty()) {
+            skippedFields.forEach(System.out::println);
+        }
+
+        return savedFarmHarvest;
+    }
+
+    private List<Field> validateFieldsInFarm(UUID farmId) {
+        List<Field> fields = fieldService.findByFarmId(farmId, Pageable.unpaged()).getContent();
+        if (fields.isEmpty()) {
+            throw new IllegalArgumentException("No fields found for the farm with id: " + farmId);
+        }
+        return fields;
     }
 
     @Override
     public Harvest getHarvestById(UUID harvestId) {
         return harvestRepository.findById(harvestId)
-                .orElseThrow(() -> new EntityNotFoundException("Harvest not found with ID: " + harvestId));
+                .orElseThrow(() -> new IllegalArgumentException("Harvest not found with id: " + harvestId));
     }
 
     @Override
-    public Page<Harvest> getAllHarvests(Season season, Integer year, Pageable pageable) {
-        if (season == null && year == null) {
-            return harvestRepository.findAll(pageable);
-        }
-        return harvestRepository.findAllBySeasonAndYear(season, year, pageable);
+    public Page<Harvest> getAllHarvests(Pageable pageable) {
+        return harvestRepository.findAll(pageable);
     }
 
     @Override
     public Harvest updateHarvest(UUID harvestId, HarvestRequestVM request) {
-        Harvest existingHarvest = getHarvestById(harvestId);
-        existingHarvest.setHarvestDate(request.getHarvestDate());
-        existingHarvest.setSeason(determineSeason(request.getHarvestDate()));
-        return harvestRepository.save(existingHarvest);
+        throw new UnsupportedOperationException("Method not implemented yet.");
     }
 
     @Override
     public void deleteHarvest(UUID harvestId) {
-        Harvest harvest = getHarvestById(harvestId);
+        Harvest harvest = harvestRepository.findById(harvestId)
+                .orElseThrow(() -> new IllegalArgumentException("Harvest not found"));
+
+        for (Sale sale : harvest.getSales()) {
+            salesService.deleteSale(sale.getId());
+        }
+
+        for (HarvestDetail detail : harvest.getHarvestDetails()) {
+            harvestDetailService.delete(detail.getId());
+        }
+
         harvestRepository.delete(harvest);
     }
 
-    private Harvest createInitialHarvest(LocalDate harvestDate, Season season) {
-        Harvest harvest = new Harvest();
-        harvest.setHarvestDate(harvestDate);
-        harvest.setTotalQuantity(0.0);
-        harvest.setSeason(season);
-        return harvestRepository.save(harvest);
-    }
-
-    private List<HarvestDetail> generateHarvestDetails(Field field, Harvest harvest, LocalDate harvestDate, Season season) {
-        List<HarvestDetail> harvestDetails = new ArrayList<>();
-        for (Tree tree : field.getTrees()) {
-            validateTreeNotHarvestedThisSeason(tree, season);
-            double treeProductivity = calculateTreeProductivityByAge(tree, harvestDate);
-            HarvestDetail harvestDetail = createHarvestDetail(harvest, tree, field, treeProductivity);
-            harvestDetails.add(harvestDetail);
-        }
-        harvestDetailRepository.saveAll(harvestDetails);
-        return harvestDetails;
-    }
-
-    private HarvestDetail createHarvestDetail(Harvest harvest, Tree tree, Field field, double quantity) {
-        HarvestDetail harvestDetail = new HarvestDetail();
-        harvestDetail.setHarvest(harvest);
-        harvestDetail.setTree(tree);
-        harvestDetail.setField(field);
-        harvestDetail.setQuantity(quantity);
-        return harvestDetail;
-    }
-
-    private Harvest finalizeHarvest(Harvest harvest, List<HarvestDetail> harvestDetails) {
-        harvest.setHarvestDetails(harvestDetails);
-        harvest.setTotalQuantity(
-                harvestDetails.stream()
-                        .mapToDouble(HarvestDetail::getQuantity)
-                        .sum()
-        );
-        return harvestRepository.save(harvest);
-    }
-
-    private double calculateTreeProductivityByAge(Tree tree, LocalDate harvestDate) {
-        int treeAge = Period.between(tree.getPlantingDate(), harvestDate).getYears();
-        if (treeAge < 3) return 2.5;
-        if (treeAge <= 10) return 12.0;
-        return 20.0;
-    }
-
-    private Season determineSeason(LocalDate harvestDate) {
-        int month = harvestDate.getMonthValue();
-        if (month >= 3 && month <= 5) return Season.SPRING;
-        if (month >= 6 && month <= 8) return Season.SUMMER;
-        if (month >= 9 && month <= 11) return Season.FALL;
-        return Season.WINTER;
-    }
-
-    private void validateUniqueSeasonHarvest(Field field, Season season) {
-        boolean existingHarvest = harvestRepository.existsByFieldIdAndSeason(field.getId(), season);
-        if (existingHarvest) {
-            throw new HarvestNotFoundException("Field already harvested in season: " + season);
-        }
-    }
-
-    private void validateTreeNotHarvestedThisSeason(Tree tree, Season season) {
-        boolean treeHarvested = harvestDetailRepository.existsByTreeIdAndHarvestSeason(tree.getId(), season);
-        if (treeHarvested) {
-            throw new RuntimeException("Tree already harvested in season: " + season);
-        }
-    }
 }

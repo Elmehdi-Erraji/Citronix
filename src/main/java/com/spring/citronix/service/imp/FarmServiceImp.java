@@ -6,8 +6,8 @@ import com.spring.citronix.repository.FarmRepository;
 import com.spring.citronix.repository.specifications.FarmSpecification;
 import com.spring.citronix.service.FarmService;
 import com.spring.citronix.service.FieldService;
-import com.spring.citronix.web.errors.farm.FarmNotFoundException;
-import com.spring.citronix.web.errors.farm.InvalidFarmException;
+import com.spring.citronix.web.errors.FarmNotFoundException;
+import com.spring.citronix.web.errors.InvalidFarmException;
 import jakarta.validation.Valid;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class FarmServiceImp implements FarmService {
@@ -52,38 +53,34 @@ public class FarmServiceImp implements FarmService {
         return farmRepository.findAll(pageable);
     }
 
+    @Transactional
     @Override
     public void delete(Farm farm) {
-        if (farm.getFields() != null && !farm.getFields().isEmpty()) {
-            for (Field field : farm.getFields()) {
-                fieldService.delete(field.getId());
-            }
+        // Delete all associated fields and their trees
+        List<Field> fields = fieldService.findByFarmId(farm.getId());
+        for (Field field : fields) {
+            fieldService.delete(field.getId()); // Ensure this handles trees and harvest details
         }
+
         farmRepository.delete(farm);
     }
 
-
-
     @Override
     public List<Farm> searchFarms(String name, String location, LocalDate startDate) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new InvalidFarmException("Farm name cannot be empty.");
+        Specification<Farm> spec = Specification.where(null);
+
+        if (name != null && !name.isEmpty()) {
+            spec = spec.and(FarmSpecification.nameContains(name));
         }
-        if (location == null || location.trim().isEmpty()) {
-            throw new InvalidFarmException("Farm location cannot be empty.");
+        if (location != null && !location.isEmpty()) {
+            spec = spec.and(FarmSpecification.locationContains(location));
         }
-        if (startDate == null) {
-            throw new InvalidFarmException("Start date cannot be null.");
+        if (startDate != null) {
+            spec = spec.and(FarmSpecification.creationDateAfter(startDate));
         }
 
-        return farmRepository.findAll(
-                Specification
-                        .where(FarmSpecification.nameContains(name))
-                        .and(FarmSpecification.locationContains(location))
-                        .and(FarmSpecification.creationDateAfter(startDate))
-        );
+        return farmRepository.findAll(spec);
     }
-
     private void validateFarm(Farm farm) {
         if (farm.getName() == null || farm.getName().trim().isEmpty()) {
             throw new InvalidFarmException("Farm name is required.");

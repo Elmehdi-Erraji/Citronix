@@ -4,6 +4,7 @@ spring:
     username: citronix
     password: citronix
     driver-class-name: org.postgresql.Driver
+    type: com.zaxxer.hikari.HikariDataSource
 
   jpa:
     hibernate:
@@ -16,3 +17,4 @@ spring:
   docker:
     compose:
       lifecycle-management: start_only
+

@@ -1,14 +1,17 @@
 package com.spring.citronix.service.imp;
 
 import com.spring.citronix.domain.Field;
+import com.spring.citronix.domain.HarvestDetail;
 import com.spring.citronix.domain.Tree;
 import com.spring.citronix.repository.TreeRepository;
 import com.spring.citronix.service.TreeService;
-import com.spring.citronix.web.errors.tree.TreeNotFoundException;
+import com.spring.citronix.web.errors.TreeNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,9 +22,11 @@ public class TreeServiceImpl implements TreeService {
 
     private static final int MAX_TREE_DENSITY_PER_HECTARE = 100;
     private final TreeRepository treeRepository;
+    private final HarvestDetailService harvestDetailService;
 
-    public TreeServiceImpl(TreeRepository treeRepository) {
+    public TreeServiceImpl(TreeRepository treeRepository, HarvestDetailService harvestDetailService) {
         this.treeRepository = treeRepository;
+        this.harvestDetailService = harvestDetailService;
     }
 
     @Override
@@ -47,8 +52,26 @@ public class TreeServiceImpl implements TreeService {
     }
 
     @Override
-    public void delete(Tree tree) {
-        treeRepository.delete(tree);
+    public List<Tree> findByFieldId(UUID id) {
+        return treeRepository.findByFieldId(id);
+    }
+
+    @Transactional
+    @Override
+    public void delete(UUID treeId) {
+        Optional<Tree> tree = findById(treeId);
+        if (tree.isPresent()) {
+            // Delete all associated harvest details (using HarvestDetailService)
+            List<HarvestDetail> harvestDetails = harvestDetailService.findByTreeId(treeId);
+            for (HarvestDetail detail : harvestDetails) {
+                harvestDetailService.delete(detail.getId()); // Call delete from HarvestDetailService
+            }
+
+            // Now delete the tree
+            treeRepository.delete(tree.get());
+        } else {
+            throw new EntityNotFoundException("Tree not found with ID: " + treeId);
+        }
     }
 
     @Override

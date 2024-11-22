@@ -16,7 +16,8 @@ public interface HarvestService {
     Harvest harvestFarm(LocalDate harvetsDate, UUID fields);
 
     Harvest getHarvestById(UUID harvestId);
-    Page<Harvest> getAllHarvests(Season season, Integer year, Pageable pageable);
+    Page<Harvest> getAllHarvests(Pageable pageable);
+
     Harvest updateHarvest(UUID harvestId, HarvestRequestVM request);
     void deleteHarvest(UUID harvestId);
 }

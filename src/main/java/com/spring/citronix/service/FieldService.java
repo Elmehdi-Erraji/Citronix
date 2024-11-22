@@ -13,5 +13,6 @@ public interface FieldService {
     Optional<Field> findById(UUID id);
     void delete(UUID id);
     Page<Field> findByFarmId(UUID farmId, Pageable pageable);
+    List<Field> findByFarmId(UUID farmId);
     boolean isTreeDensityValid(UUID fieldId, int numberOfTrees);
 }
