@@ -4,7 +4,7 @@ import com.spring.citronix.domain.Field;
 import com.spring.citronix.domain.Tree;
 import com.spring.citronix.service.TreeService;
 import com.spring.citronix.service.imp.FieldServiceImp;
-import com.spring.citronix.web.errors.tree.TreeNotFoundException;
+import com.spring.citronix.web.errors.TreeNotFoundException;
 
 import com.spring.citronix.web.mapper.request.TreeMapper;
 import com.spring.citronix.web.vm.request.tree.TreeCreateVM;
@@ -16,7 +16,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -74,7 +73,7 @@ public class TreeController {
     public ResponseEntity<String> deleteTree(@PathVariable UUID id) {
         Tree tree = treeService.findById(id)
                 .orElseThrow(() -> new TreeNotFoundException("Tree not found with ID: " + id));
-        treeService.delete(tree);
+        treeService.delete(tree.getId());
         return ResponseEntity.ok("Tree deleted.");
     }
 }

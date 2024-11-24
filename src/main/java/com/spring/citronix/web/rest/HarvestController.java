@@ -1,97 +1,102 @@
 package com.spring.citronix.web.rest;
 
-import com.spring.citronix.domain.Farm;
 import com.spring.citronix.domain.Harvest;
 import com.spring.citronix.domain.enums.Season;
 import com.spring.citronix.service.HarvestService;
-import com.spring.citronix.service.imp.FarmServiceImp;
-import com.spring.citronix.web.errors.harvest.HarvestNotFoundException;
 import com.spring.citronix.web.mapper.request.HarvestMapper;
-
-import com.spring.citronix.web.vm.request.harvest.HarvestCreateVM;
+import com.spring.citronix.web.vm.request.harvest.HarvestRequestVM;
+import com.spring.citronix.web.vm.response.harvest.HarvestResponse;
 import com.spring.citronix.web.vm.response.harvest.HarvestResponseVM;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/harvests")
+@RequestMapping("/api")
+@RequiredArgsConstructor
 public class HarvestController {
     private final HarvestService harvestService;
     private final HarvestMapper harvestMapper;
-    private final FarmServiceImp farmServiceImp;
 
-    public HarvestController(HarvestService harvestService, HarvestMapper harvestMapper, FarmServiceImp farmServiceImp) {
-        this.harvestService = harvestService;
-        this.harvestMapper = harvestMapper;
-        this.farmServiceImp = farmServiceImp;
+    @PostMapping("/harvests")
+    public ResponseEntity<HarvestResponseVM> HarvestField(@Valid @RequestBody HarvestRequestVM requestVM) {
+
+        Harvest harvest = harvestService.harvestField(requestVM.getHarvestDate(), requestVM.getItem());
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(harvestMapper.toHarvestResponseVM(harvest));
+
     }
 
-//    @PostMapping
-//    public ResponseEntity<HarvestResponseVM> createHarvest(@Valid @RequestBody HarvestCreateVM harvestCreateVM) {
-//        Harvest harvest = harvestMapper.toEntity(harvestCreateVM);
-//        Harvest savedHarvest = harvestService.save(harvest);
-//        return ResponseEntity.ok(harvestMapper.toResponseVM(savedHarvest));
-//    }
+    @PostMapping("/harvests/all")
+    public ResponseEntity<HarvestResponseVM> HarvestFarm(@Valid @RequestBody HarvestRequestVM requestVM) {
 
-    @PostMapping
-    public ResponseEntity<Harvest> saveHarvest(@Valid @RequestBody HarvestCreateVM harvestDTO) {
+        Harvest harvest = harvestService.harvestFarm(requestVM.getHarvestDate(), requestVM.getItem());
 
-        // Fetch the farm by its id
-        Farm farm = farmServiceImp.findById(harvestDTO.getFarmId())
-                .orElseThrow(() -> new IllegalArgumentException("Farm not found"));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(harvestMapper.toHarvestResponseVM(harvest));
 
-        // Create a new Harvest instance and set its properties
-        Harvest harvest = new Harvest();
-        harvest.setSeason(Season.valueOf(harvestDTO.getSeason()));
-        harvest.setHarvestDate(harvestDTO.getHarvestDate());
-        harvest.setTotalQuantity(harvestDTO.getTotalQuantity());
-        harvest.setFarm(farm);
-
-        // Save the harvest and return the result
-        Harvest savedHarvest = harvestService.save(harvest);
-
-        return ResponseEntity.ok(savedHarvest);
     }
 
-
-
-
-
-
-
-
-
-
-    @GetMapping("/{id}")
-    public ResponseEntity<HarvestResponseVM> getHarvest(@PathVariable UUID id) {
-        Harvest harvest = harvestService.findById(id)
-                .orElseThrow(() -> new HarvestNotFoundException("Harvest not found with ID: " + id));
-        return ResponseEntity.ok(harvestMapper.toResponseVM(harvest));
+    @GetMapping("harvests/{harvestId}")
+    public ResponseEntity<HarvestResponse> getHarvest(@PathVariable UUID harvestId) {
+        Harvest harvest = harvestService.getHarvestById(harvestId);
+        return ResponseEntity.ok(harvestMapper.toResponse(harvest));
     }
 
-    @GetMapping("/farm/{farmId}")
-    public List<HarvestResponseVM> getHarvestsByFarm(@PathVariable UUID farmId) {
-        return harvestService.findByFarmId(farmId)
-                .stream()
-                .map(harvestMapper::toResponseVM)
-                .toList();
+    @GetMapping("/findAll")
+    public ResponseEntity<Page<HarvestResponse>> listHarvests(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "harvestDate,desc") String[] sort
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(getSortOrders(sort)));
+        Page<Harvest> harvests = harvestService.getAllHarvests(pageable);
+        return ResponseEntity.ok(harvests.map(harvestMapper::toResponse));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteHarvest(@PathVariable UUID id) {
-        Harvest harvest = harvestService.findById(id)
-                .orElseThrow(() -> new HarvestNotFoundException("Harvest not found with ID: " + id));
-        harvestService.delete(harvest);
+    private List<Sort.Order> getSortOrders(String[] sort) {
+        return Arrays.stream(sort)
+                .map(sortParam -> {
+                    String[] parts = sortParam.split(",");
+                    String property = parts[0];
+                    Sort.Direction direction = parts.length > 1 && parts[1].equalsIgnoreCase("asc")
+                            ? Sort.Direction.ASC
+                            : Sort.Direction.DESC;
+                    return new Sort.Order(direction, property);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @PutMapping("harvests/{harvestId}")
+    public ResponseEntity<HarvestResponse> updateHarvest(
+            @PathVariable UUID harvestId,
+            @Valid @RequestBody HarvestRequestVM request
+    ) {
+        Harvest updatedHarvest = harvestService.updateHarvest(harvestId, request);
+        return ResponseEntity.ok(harvestMapper.toResponse(updatedHarvest));
+    }
+
+    @DeleteMapping("harvests/{harvestId}")
+    public ResponseEntity<Void> deleteHarvest(@PathVariable UUID harvestId) {
+        harvestService.deleteHarvest(harvestId);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/season/{season}")
-    public ResponseEntity<List<Harvest>> getHarvestsBySeason(@PathVariable Season season) {
-        List<Harvest> harvests = harvestService.getHarvestsBySeason(season);
-        return ResponseEntity.ok(harvests);
-    }
+
+
 }

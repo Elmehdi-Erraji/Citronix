@@ -11,14 +11,10 @@ import java.util.UUID;
 public interface TreeService {
 
     Tree save(Tree tree);
-
     Optional<Tree> findById(UUID id);
-
     List<Tree> findAll();
-
     Page<Tree> findByFieldId(UUID fieldId, Pageable pageable);
-
-    void delete(Tree tree);
-
+    List<Tree> findByFieldId(UUID id);
+    void delete(UUID treeId);
     double calculateProductivity(UUID treeId);
 }

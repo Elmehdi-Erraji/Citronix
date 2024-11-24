@@ -1,19 +1,16 @@
 package com.spring.citronix.web.vm.response.harvest;
 
-
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Data
-@Setter
 @Getter
-public class HarvestResponseVM {
+@Setter
+public class HarvestResponse {
     private UUID id;
     private String season;
     private LocalDate harvestDate;
-    private double totalQuantity;
+    private Double totalQuantity;
 }

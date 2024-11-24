@@ -1,4 +1,4 @@
-package com.spring.citronix.web.errors.field;
+package com.spring.citronix.web.errors;
 
 import java.util.UUID;
 

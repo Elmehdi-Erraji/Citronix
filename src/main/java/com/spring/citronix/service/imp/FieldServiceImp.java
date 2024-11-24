@@ -1,19 +1,20 @@
 package com.spring.citronix.service.imp;
 
-import com.spring.citronix.domain.Farm;
 import com.spring.citronix.domain.Field;
+import com.spring.citronix.domain.Tree;
 import com.spring.citronix.repository.FieldRepository;
 import com.spring.citronix.service.FieldService;
-import com.spring.citronix.web.errors.field.FieldNotFoundException;
-import com.spring.citronix.web.errors.field.InvalidTreeDensityException;
-import com.spring.citronix.web.errors.field.InvalidFieldAreaException;
-import com.spring.citronix.web.errors.field.MaxFieldsInFarmException;
+import com.spring.citronix.service.TreeService;
+import com.spring.citronix.web.errors.FieldNotFoundException;
+import com.spring.citronix.web.errors.InvalidTreeDensityException;
+import com.spring.citronix.web.errors.InvalidFieldAreaException;
+import com.spring.citronix.web.errors.MaxFieldsInFarmException;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,29 +22,46 @@ import java.util.UUID;
 @Service
 public class FieldServiceImp implements FieldService {
     private final FieldRepository fieldRepository;
+    private final TreeService treeService;
+    private final HarvestDetailService harvestDetailService;
 
-    public FieldServiceImp(FieldRepository fieldRepository) {
+    public FieldServiceImp(FieldRepository fieldRepository, TreeService treeService, HarvestDetailService harvestDetailService) {
         this.fieldRepository = fieldRepository;
+        this.treeService = treeService;
+        this.harvestDetailService = harvestDetailService;
     }
 
     @Override
     public Field save(Field field) {
-
         validateFieldArea(field);
         return fieldRepository.save(field);
     }
 
+    @Transactional
     @Override
     public void delete(UUID id) {
-        if (!fieldRepository.existsById(id)) {
-            throw new FieldNotFoundException("field not found");
+        Optional<Field> field = findById(id);
+        if (field.isPresent()) {
+            // Delete all trees related to this field (including their harvest details)
+            List<Tree> trees = treeService.findByFieldId(id);
+            for (Tree tree : trees) {
+                treeService.delete(tree.getId()); // TreeService already handles harvest detail deletion
+            }
+
+            fieldRepository.delete(field.get());
+        } else {
+            throw new EntityNotFoundException("Field not found with ID: " + id);
         }
-        fieldRepository.deleteById(id);
     }
 
     @Override
     public Page<Field> findByFarmId(UUID farmId, Pageable pageable) {
         return fieldRepository.findByFarmId(farmId, pageable);
+    }
+
+    @Override
+    public List<Field> findByFarmId(UUID farmId) {
+        return List.of();
     }
 
     public List<Field> findByFatrId(UUID id){

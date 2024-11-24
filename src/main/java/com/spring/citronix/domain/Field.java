@@ -23,6 +23,7 @@ public class Field {
     private double area;
 
     @ManyToOne(optional = false)
+    @JoinColumn(name = "farm_id",nullable = false)
     private Farm farm;
 
     @OneToMany(mappedBy = "field")
@@ -33,7 +34,4 @@ public class Field {
         return numberOfTrees <= area * 10;
     }
 
-    public boolean isAreaValid() {
-        return area < (farm.getArea() * 0.5);
-    }
 }

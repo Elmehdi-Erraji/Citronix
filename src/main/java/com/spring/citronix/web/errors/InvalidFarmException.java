@@ -1,4 +1,4 @@
-package com.spring.citronix.web.errors.farm;
+package com.spring.citronix.web.errors;
 
 public class InvalidFarmException extends RuntimeException {
 

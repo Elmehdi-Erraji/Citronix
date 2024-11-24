@@ -1,4 +1,4 @@
-package com.spring.citronix.web.errors.field;
+package com.spring.citronix.web.errors;
 
 public class MaxFieldsInFarmException extends RuntimeException {
     public MaxFieldsInFarmException(String message) {

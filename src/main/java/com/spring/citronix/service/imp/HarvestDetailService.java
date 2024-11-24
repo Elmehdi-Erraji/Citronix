@@ -12,6 +12,7 @@ import com.spring.citronix.web.vm.response.harvest.HarvestDetailResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,55 +21,44 @@ import java.util.UUID;
 public class HarvestDetailService {
 
     private final HarvestDetailRepository harvestDetailRepository;
-    private final HarvestRepository harvestRepository;
     private final TreeRepository treeRepository;
 
-    public HarvestDetailService(HarvestDetailRepository harvestDetailRepository, HarvestRepository harvestRepository, TreeRepository treeRepository) {
+    public HarvestDetailService(HarvestDetailRepository harvestDetailRepository, TreeRepository treeRepository) {
         this.harvestDetailRepository = harvestDetailRepository;
-        this.harvestRepository = harvestRepository;
         this.treeRepository = treeRepository;
     }
 
+    // Fetch HarvestDetails for a given Field
+    public List<HarvestDetail> findByFieldId(UUID fieldId) {
+        // Get trees that belong to the specified field
+        List<Tree> trees = treeRepository.findByFieldId(fieldId);
 
-    /**
-     * Create a new HarvestDetail and associate it with a specific Harvest and Tree.
-     */
-    public HarvestDetailResponse createHarvestDetail(HarvestDetailCreateVM request) {
-        // Fetch Harvest and Tree from their respective repositories
-        Harvest harvest = harvestRepository.findById(request.getHarvestId())
-                .orElseThrow(() -> new IllegalArgumentException("Harvest not found with ID: " + request.getHarvestId()));
+        // Retrieve all HarvestDetails associated with these trees
+        List<HarvestDetail> harvestDetails = new ArrayList<>();
+        for (Tree tree : trees) {
+            harvestDetails.addAll(harvestDetailRepository.findByTree(tree));
+        }
 
-        Tree tree = treeRepository.findById(request.getTreeId())
-                .orElseThrow(() -> new IllegalArgumentException("Tree not found with ID: " + request.getTreeId()));
-
-        // Create and save the HarvestDetail
-        HarvestDetail harvestDetail = new HarvestDetail();
-        harvestDetail.setHarvest(harvest);
-        harvestDetail.setTree(tree);
-        harvestDetail.setQuantity(request.getQuantity());
-
-        HarvestDetail savedDetail = harvestDetailRepository.save(harvestDetail);
-
-        // Return a response
-        return new HarvestDetailResponse(
-                savedDetail.getId(),
-                savedDetail.getHarvest().getId(),
-                savedDetail.getTree().getId(),
-                savedDetail.getQuantity()
-        );
+        return harvestDetails;
     }
 
-    /**
-     * Get all HarvestDetails by Harvest ID.
-     */
-    public List<HarvestDetail> getHarvestDetailsByHarvestId(UUID harvestId) {
-        return harvestDetailRepository.findByHarvestId(harvestId);
+    // Delete HarvestDetail by its ID
+    public void delete(UUID harvestDetailId) {
+        HarvestDetail harvestDetail = (HarvestDetail) harvestDetailRepository.findById(harvestDetailId)
+                .orElseThrow(() -> new IllegalArgumentException("HarvestDetail not found"));
+
+        // Get the harvest related to this detail
+        Harvest harvest = harvestDetail.getHarvest();
+
+        // Remove the harvest detail from the harvest's list of details
+        harvest.getHarvestDetails().remove(harvestDetail);
+
+        // Delete the harvest detail
+        harvestDetailRepository.deleteById(harvestDetail.getId());
     }
 
-    /**
-     * Get all HarvestDetails by Tree ID.
-     */
-    public List<HarvestDetail> getHarvestDetailsByTreeId(UUID treeId) {
+    // Find HarvestDetails by Tree ID
+    public List<HarvestDetail> findByTreeId(UUID treeId) {
         return harvestDetailRepository.findByTreeId(treeId);
     }
 }

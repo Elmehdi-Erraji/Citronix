@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -22,6 +23,9 @@ public class Tree {
 
     @ManyToOne(optional = false)
     private Field field;
+
+    @OneToMany(mappedBy = "tree")
+    private List<HarvestDetail> harvestDetails;
 
 
     public int calculateAge() {

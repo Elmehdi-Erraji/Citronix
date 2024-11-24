@@ -1,4 +1,4 @@
-package com.spring.citronix.web.errors.field;
+package com.spring.citronix.web.errors;
 
 public class InvalidFieldAreaException extends RuntimeException {
     public InvalidFieldAreaException(String message) {

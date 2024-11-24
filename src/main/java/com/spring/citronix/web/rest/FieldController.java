@@ -4,17 +4,17 @@ import com.spring.citronix.domain.Farm;
 import com.spring.citronix.domain.Field;
 import com.spring.citronix.service.FieldService;
 import com.spring.citronix.service.imp.FarmServiceImp;
-import com.spring.citronix.web.errors.field.ResourceNotFoundException;
+import com.spring.citronix.web.errors.ResourceNotFoundException;
 import com.spring.citronix.web.mapper.request.FieldMapper;
 import com.spring.citronix.web.vm.request.field.FieldCreateVM;
-import com.spring.citronix.web.vm.request.field.TreeDensityValidationVM;
+import com.spring.citronix.web.vm.response.field.FieldResponseVM;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.List;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,9 +42,7 @@ public class FieldController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<Field> updateField(
-            @PathVariable UUID id,
-            @Valid @RequestBody FieldCreateVM fieldCreateVM) {
+    public ResponseEntity<Field> updateField(@PathVariable UUID id,@Valid @RequestBody FieldCreateVM fieldCreateVM) {
 
         Field existingField = fieldService.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Field not found with ID: " + id));
@@ -63,12 +61,15 @@ public class FieldController {
 
 
     @GetMapping("/farm/{farmId}")
-    public ResponseEntity<Page<Field>> getFieldsByFarmId(
+    public ResponseEntity<Page<FieldResponseVM>> getFieldsByFarmId(
             @PathVariable UUID farmId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Page<Field> fields = fieldService.findByFarmId(farmId, PageRequest.of(page, size));
-        return ResponseEntity.ok(fields);
+
+        Page<FieldResponseVM> response = fields.map(fieldMapper::toFieldResponseVM);
+
+        return ResponseEntity.ok(response);
     }
 }

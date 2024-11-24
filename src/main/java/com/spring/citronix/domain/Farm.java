@@ -35,7 +35,7 @@ public class Farm {
     @PastOrPresent(message = "Creation date cannot be in the future")
     private LocalDate creationDate;
 
-    @OneToMany
+    @OneToMany(mappedBy = "farm" )
     private List<Field> fields= new ArrayList<>();
 
     public boolean isValidArea(double fieldAreaSum) {
