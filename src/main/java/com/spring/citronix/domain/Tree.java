@@ -1,5 +1,7 @@
 package com.spring.citronix.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,9 +24,11 @@ public class Tree {
     private LocalDate plantingDate;
 
     @ManyToOne(optional = false)
+    @JsonIgnore
     private Field field;
 
     @OneToMany(mappedBy = "tree")
+    @JsonIgnore
     private List<HarvestDetail> harvestDetails;
 
 

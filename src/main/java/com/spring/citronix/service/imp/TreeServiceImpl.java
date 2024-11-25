@@ -56,6 +56,11 @@ public class TreeServiceImpl implements TreeService {
         return treeRepository.findByFieldId(id);
     }
 
+    @Override
+    public Page<Tree> findAll(Pageable pageable) {
+        return treeRepository.findAll(pageable);
+    }
+
     @Transactional
     @Override
     public void delete(UUID treeId) {

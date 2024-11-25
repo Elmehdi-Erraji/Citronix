@@ -17,4 +17,5 @@ public interface TreeService {
     List<Tree> findByFieldId(UUID id);
     void delete(UUID treeId);
     double calculateProductivity(UUID treeId);
+    Page<Tree> findAll(Pageable pageable);
 }

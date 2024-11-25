@@ -10,12 +10,14 @@ import com.spring.citronix.web.mapper.request.TreeMapper;
 import com.spring.citronix.web.vm.request.tree.TreeCreateVM;
 import com.spring.citronix.web.vm.response.tree.TreeResponseVM;
 import jakarta.validation.Valid;
+import jakarta.websocket.server.PathParam;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -75,5 +77,15 @@ public class TreeController {
                 .orElseThrow(() -> new TreeNotFoundException("Tree not found with ID: " + id));
         treeService.delete(tree.getId());
         return ResponseEntity.ok("Tree deleted.");
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<Page<Tree>> findAll(
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "page", defaultValue = "0") int page
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Tree> trees = treeService.findAll(pageable);
+        return ResponseEntity.ok(trees);
     }
 }

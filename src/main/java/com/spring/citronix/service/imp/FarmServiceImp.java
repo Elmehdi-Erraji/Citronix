@@ -80,6 +80,7 @@ public class FarmServiceImp implements FarmService {
 
         return farmRepository.findAll(spec);
     }
+
     private void validateFarm(Farm farm) {
         if (farm.getName() == null || farm.getName().trim().isEmpty()) {
             throw new InvalidFarmException("Farm name is required.");
@@ -114,4 +115,6 @@ public class FarmServiceImp implements FarmService {
             }
         }
     }
+
+
 }

@@ -15,4 +15,5 @@ public interface FieldRepository extends JpaRepository<Field, UUID> {
     Page<Field> findByFarmId(UUID farmId, Pageable pageable);
 
     List<Field> findFieldByFarmId(UUID farmId);
+
 }
